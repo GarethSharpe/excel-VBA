@@ -1,0 +1,66 @@
+Option Explicit
+
+Public selected_cell As Range
+Public ships_left As Range
+Public ships_destroyed As Range
+Public turns As Range
+
+Sub set_board()
+
+    Dim board As Range
+    Dim ships As Byte
+    Dim random_cell As Integer
+    
+    Set board = Range("B5:F15")
+    Set turns = Range("I5")
+    Set ships_destroyed = Range("j5")
+    Set ships_left = Range("K5")
+    
+    turns.Value = 4
+    ships_left.Value = 5
+    ships_destroyed.Value = 0
+    
+    board.clear
+    board.Style = "Accent1"
+    board.Select
+    Application.CutCopyMode = False
+    
+    For ships = 1 To 5
+        random_cell = Int(Rnd * board.Cells.Count)
+        With board.Cells(random_cell)
+            .Select
+            .Value = "BattleShip"
+            MsgBox "Ship " & ships & " was launched"
+        End With
+        Next ships
+    
+End Sub
+
+Sub fire_button()
+    
+    Set turns = Range("I5")
+    Set ships_destroyed = Range("j5")
+    Set ships_left = Range("K5")
+
+    If turns.Value > 0 Then
+        With Selection
+            If .Value = "BattleShip" Then
+                .Style = "Check Cell"
+                ships_left.Value = ships_left.Value - 1
+                ships_destroyed.Value = ships_destroyed.Value + 1
+                MsgBox "Congradulations, you sank ship number" & ships_destroyed & "! " & ships_left & " more ships to go."
+            Else
+            .Style = "Accent2"
+            turns = turns.Value - 1
+            MsgBox "You missed, sucker. only " & turns & " left.", vbCritical
+            End If
+        End With
+    Else
+    MsgBox "Game over. You LOSE. In the process of your failure you were able to sink a total of " & ships_destroyed & ".", vbInformation, "You Lose"
+    End If
+    
+    If ships_left = 0 Then
+            MsgBox "You have won. This time.", vbExclamation, "Finally"
+    End If
+    
+End Sub
