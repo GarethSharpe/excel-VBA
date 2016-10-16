@@ -1,0 +1,294 @@
+Option Explicit
+Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+Public counter As Integer
+Public populated As Integer
+Public cell As Range
+
+Sub check(state)
+    populated = 1
+    If state = populated Then
+        counter = counter + 1
+    End If
+End Sub
+
+Sub cells()
+    Dim alive_cells As Integer
+    Dim unpopulated As Byte
+    Dim populated As Byte
+    Dim value As Byte
+    Dim state As Integer
+    Dim generations As Integer
+    Dim age As Single
+    
+    populated = 1
+    unpopulated = 6
+    
+    With ThisWorkbook.Worksheets("Game of Life")
+        .Range("A1:Y25").Name = "Board"
+        .Range("B2:Y24").Name = "Interior"
+        .Range("A1").Name = "TopLeft"
+        .Range("B1:X1").Name = "Top"
+        .Range("Y1").Name = "TopRight"
+        .Range("Y2:Y24").Name = "Right"
+        .Range("Y25").Name = "BottomRight"
+        .Range("B25:X25").Name = "Bottom"
+        .Range("A25").Name = "BottomLeft"
+        .Range("A2:A24").Name = "Left"
+    End With
+    
+    With ThisWorkbook.Worksheets("Algorithm")
+        .Range("A1:Y25").Name = "NewBoard"
+    End With
+    
+    Do
+        For Each cell In Range("Board")
+            counter = 0
+            If Not Intersect(cell, Range("Interior")) Is Nothing Then
+                check (cell.Offset(0, 1).Interior.ColorIndex)
+                check (cell.Offset(1, 0).Interior.ColorIndex)
+                check (cell.Offset(1, 1).Interior.ColorIndex)
+                check (cell.Offset(0, -1).Interior.ColorIndex)
+                check (cell.Offset(-1, 0).Interior.ColorIndex)
+                check (cell.Offset(-1, -1).Interior.ColorIndex)
+                check (cell.Offset(1, -1).Interior.ColorIndex)
+                check (cell.Offset(-1, 1).Interior.ColorIndex)
+            ElseIf Not Intersect(cell, Range("TopLeft")) Is Nothing Then
+                check (cell.Offset(0, 1).Interior.ColorIndex)
+                check (cell.Offset(1, 1).Interior.ColorIndex)
+                check (cell.Offset(1, 0).Interior.ColorIndex)
+            ElseIf Not Intersect(cell, Range("Top")) Is Nothing Then
+                check (cell.Offset(0, 1).Interior.ColorIndex)
+                check (cell.Offset(1, 1).Interior.ColorIndex)
+                check (cell.Offset(1, 0).Interior.ColorIndex)
+                check (cell.Offset(1, -1).Interior.ColorIndex)
+                check (cell.Offset(0, -1).Interior.ColorIndex)
+            ElseIf Not Intersect(cell, Range("TopRight")) Is Nothing Then
+                check (cell.Offset(1, 0).Interior.ColorIndex)
+                check (cell.Offset(1, -1).Interior.ColorIndex)
+                check (cell.Offset(0, -1).Interior.ColorIndex)
+            ElseIf Not Intersect(cell, Range("Right")) Is Nothing Then
+                check (cell.Offset(-1, 0).Interior.ColorIndex)
+                check (cell.Offset(1, 0).Interior.ColorIndex)
+                check (cell.Offset(1, -1).Interior.ColorIndex)
+                check (cell.Offset(0, -1).Interior.ColorIndex)
+                check (cell.Offset(-1, -1).Interior.ColorIndex)
+            ElseIf Not Intersect(cell, Range("BottomRight")) Is Nothing Then
+                check (cell.Offset(1, 0).Interior.ColorIndex)
+                check (cell.Offset(-1, -1).Interior.ColorIndex)
+                check (cell.Offset(0, -1).Interior.ColorIndex)
+            ElseIf Not Intersect(cell, Range("Bottom")) Is Nothing Then
+                check (cell.Offset(-1, 0).Interior.ColorIndex)
+                check (cell.Offset(-1, 1).Interior.ColorIndex)
+                check (cell.Offset(1, 0).Interior.ColorIndex)
+                check (cell.Offset(0, -1).Interior.ColorIndex)
+                check (cell.Offset(-1, -1).Interior.ColorIndex)
+            ElseIf Not Intersect(cell, Range("BottomLeft")) Is Nothing Then
+                check (cell.Offset(-1, 0).Interior.ColorIndex)
+                check (cell.Offset(-1, 1).Interior.ColorIndex)
+                check (cell.Offset(0, 1).Interior.ColorIndex)
+            Else
+                check (cell.Offset(-1, 0).Interior.ColorIndex)
+                check (cell.Offset(-1, 1).Interior.ColorIndex)
+                check (cell.Offset(0, 1).Interior.ColorIndex)
+                check (cell.Offset(1, 1).Interior.ColorIndex)
+                check (cell.Offset(1, 0).Interior.ColorIndex)
+            End If
+            
+            state = cell.Interior.ColorIndex
+            
+            With ThisWorkbook.Worksheets("Algorithm")
+                If counter <= 1 And state = populated Then
+                    .Range(cell.Address(0, 0)).Interior.ColorIndex = unpopulated
+                ElseIf counter >= 4 And state = populated Then
+                    .Range(cell.Address(0, 0)).Interior.ColorIndex = unpopulated
+                ElseIf (counter = 2 Or counter = 3) And state = populated Then
+                    With .Range(cell.Address(0, 0)).Interior
+'                   # Comment section 2 and uncomment section 1 for no age
+'                   -------------------------------
+'                   # Section 1
+                        .ColorIndex = populated
+'                   # Section 1 end
+'                   -------------------------------
+'                   -------------------------------
+'                   # Section 2
+'                        If .TintAndShade < 0.8 Then
+'                            age = .TintAndShade + 0.1
+'                            .ColorIndex = populated
+'                            .TintAndShade = age + 0.1
+'                        Else
+'                            .ColorIndex = unpopulated
+'                            .TintAndShade = 0
+'                        End If
+'                   # Section 2 end
+'                   -------------------------------
+                    End With
+                    alive_cells = alive_cells + 1
+                ElseIf counter = 3 And state = unpopulated Then
+                    .Range(cell.Address(0, 0)).Interior.ColorIndex = populated
+                    alive_cells = alive_cells + 1
+                ElseIf counter <> 3 And state = unpopulated Then
+                    .Range(cell.Address(0, 0)).Interior.ColorIndex = unpopulated
+                End If
+            End With
+        Next cell
+        
+        Range("NewBoard").Copy Destination:=Range("Board")
+        If alive_cells = 0 Then
+            MsgBox "Your colony has died. Your colony lasted a total of " & vbNewLine _
+            & generations & " generations.", vbExclamation, "Game of Life"
+            Range("AA11") = generations
+            Range("AA19") = alive_cells
+            Exit Do
+        Else:
+            generations = generations + 1
+        End If
+        Range("AA11") = generations
+        Range("AA19") = alive_cells
+        alive_cells = 0
+        Application.Wait Now + TimeValue("00:00:01")
+    Loop
+End Sub
+
+Sub clear_board()
+    With ThisWorkbook
+        .Worksheets("Game of Life").Range("Board").Interior.ColorIndex = 6
+        Range("AA11") = 0
+        Range("AA19") = 0
+        .Worksheets("Algorithm").Range("NewBoard").Interior.ColorIndex = 6
+        Range("A1").Select
+    End With
+End Sub
+
+Sub set_glider()
+    Dim anchor As String
+    Dim populated As Byte
+    Dim footprint As String
+    
+    populated = 1
+    
+    anchor = InputBox("Enter glider starting point: ", "Glider", "- cell in A1 format here -")
+    
+    With Worksheets("Game of Life").Range(anchor)
+        footprint = .Offset(2, 2).Address(0, 0)
+        If Not Intersect(Range(footprint), Range("Board")) Is Nothing Then
+            .Interior.ColorIndex = populated
+            .Offset(2, 0).Interior.ColorIndex = populated
+            .Offset(2, 1).Interior.ColorIndex = populated
+            .Offset(1, 1).Interior.ColorIndex = populated
+            .Offset(1, 2).Interior.ColorIndex = populated
+            MsgBox "Glider set at " & anchor, , "Glider Set"
+        Else
+            MsgBox "Glider footprint outside board!"
+        End If
+    End With
+End Sub
+
+Sub LWSS()
+    Dim anchor As String
+    Dim populated As Byte
+    Dim footprint As String
+    
+    populated = 1
+    
+    anchor = InputBox("Enter glider starting point: ", "Light Weight Space Ship", "- cell in A1 format here -")
+    
+    With Worksheets("Game of Life").Range(anchor)
+        footprint = .Offset(3, 4).Address(0, 0)
+        If Not Intersect(Range(footprint), Range("Board")) Is Nothing Then
+            .Interior.ColorIndex = populated
+            .Offset(2, 0).Interior.ColorIndex = populated
+            .Offset(3, 1).Interior.ColorIndex = populated
+            .Offset(3, 2).Interior.ColorIndex = populated
+            .Offset(3, 3).Interior.ColorIndex = populated
+            .Offset(3, 4).Interior.ColorIndex = populated
+            .Offset(2, 4).Interior.ColorIndex = populated
+            .Offset(1, 4).Interior.ColorIndex = populated
+            .Offset(0, 3).Interior.ColorIndex = populated
+            MsgBox "Light Weight Space Ship set at " & anchor, , "LWSS Set"
+        Else
+            MsgBox "Light Weight Space Ship footprint outside board!"
+        End If
+    End With
+End Sub
+
+Sub blinker()
+    Dim anchor As String
+    Dim populated As Byte
+    Dim footprint As String
+    
+    populated = 1
+    
+    anchor = InputBox("Enter Blinker starting point: ", "Blinker", "- cell in A1 format here -")
+    
+    With Worksheets("Game of Life").Range(anchor)
+        footprint = .Offset(3, 3).Address(0, 0)
+        If Not Intersect(Range(footprint), Range("Board")) Is Nothing Then
+            .Offset(0, 1).Interior.ColorIndex = populated
+            .Offset(1, 1).Interior.ColorIndex = populated
+            .Offset(2, 1).Interior.ColorIndex = populated
+            MsgBox "Blinker set at " & anchor, , "Blinker Set"
+        Else
+            MsgBox "Blinker footprint outside board!"
+        End If
+    End With
+End Sub
+
+Sub toad()
+    Dim anchor As String
+    Dim populated As Byte
+    Dim footprint As String
+    
+    populated = 1
+    
+    anchor = InputBox("Enter Toad starting point: ", "Toad", "- cell in A1 format here -")
+    
+    With Worksheets("Game of Life").Range(anchor)
+        footprint = .Offset(4, 4).Address(0, 0)
+        If Not Intersect(Range(footprint), Range("Board")) Is Nothing Then
+            .Offset(2, 0).Interior.ColorIndex = populated
+            .Offset(2, 1).Interior.ColorIndex = populated
+            .Offset(2, 2).Interior.ColorIndex = populated
+            .Offset(1, 1).Interior.ColorIndex = populated
+            .Offset(1, 2).Interior.ColorIndex = populated
+            .Offset(1, 3).Interior.ColorIndex = populated
+            MsgBox "Toad set at " & anchor, , "Toad Set"
+        Else
+            MsgBox "Toad footprint outside board!"
+        End If
+    End With
+End Sub
+
+Sub beacon()
+    Dim anchor As String
+    Dim populated As Byte
+    Dim footprint As String
+    
+    populated = 1
+    
+    anchor = InputBox("Enter Beaconstarting point: ", "Beacon", "- cell in A1 format here -")
+    
+    With Worksheets("Game of Life").Range(anchor)
+        footprint = .Offset(4, 4).Address(0, 0)
+        If Not Intersect(Range(footprint), Range("Board")) Is Nothing Then
+            .Offset(0, 0).Interior.ColorIndex = populated
+            .Offset(0, 1).Interior.ColorIndex = populated
+            .Offset(1, 0).Interior.ColorIndex = populated
+            .Offset(1, 1).Interior.ColorIndex = populated
+            .Offset(2, 2).Interior.ColorIndex = populated
+            .Offset(2, 3).Interior.ColorIndex = populated
+            .Offset(3, 2).Interior.ColorIndex = populated
+            .Offset(3, 3).Interior.ColorIndex = populated
+            MsgBox "Beacon set at " & anchor, , "Beacon Set"
+        Else
+            MsgBox "Beacon footprint outside board!"
+        End If
+    End With
+End Sub
+
+' # SHEET CODE #
+' Place in sheet1 code
+
+Option Explicit
+Sub Worksheet_SelectionChange(ByVal Target As Range)
+    Range(Target.Address).Interior.ColorIndex = 1
+End Sub
